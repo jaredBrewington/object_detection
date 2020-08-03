@@ -2,11 +2,11 @@ from dataset import Open_Images_Instance_Seg
 from visualize import add_bboxes
 import matplotlib.pyplot as plt
 
-train_data = Open_Images_Instance_Seg('./train/')
+train_data = Open_Images_Instance_Seg("./train/")
 
 img, target = train_data.__get_item__(0)
 
-print(target['bboxes'][0])
+print(target["bboxes"][0])
 
 # plt.imshow(img)
 
