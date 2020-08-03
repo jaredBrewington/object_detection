@@ -35,7 +35,7 @@ class OpenImagesDataset(data.Dataset):
         bbox_df = pd.read_csv(os.path.join(self.root_dir, bbox_path))
         self.bbox_df = bbox_df
 
-    def __get_item__(self, idx):
+    def __getitem__(self, idx):
 
         # load image and associated masks
         img_path = os.path.join(self.root_dir, "images", self.imgs[idx])
@@ -53,12 +53,7 @@ class OpenImagesDataset(data.Dataset):
 
         # get bounding boxes and class labels for the image
         bboxes_df = self.bbox_df[self.bbox_df["ImageID"] == img_id]
-        # scale bounding boxes to image size
-        height, width = img.shape[:2]
-        bboxes_df["XMin"] = bboxes_df["XMin"] * width
-        bboxes_df["XMax"] = bboxes_df["XMax"] * width
-        bboxes_df["YMin"] = bboxes_df["YMin"] * height
-        bboxes_df["YMax"] = bboxes_df["YMax"] * height
+
         # get the label index id
         labels = bboxes_df["LabelName"].to_numpy()
         labels = np.array(
@@ -71,8 +66,8 @@ class OpenImagesDataset(data.Dataset):
 
         # make everything torch tensors
         img = torch.as_tensor(img)
-        mask_list = torch.as_tensor(mask_list)
-        labels = torch.as_tensor(labels)
+        mask_list = torch.as_tensor(mask_list, dtype=torch.int64)
+        labels = torch.as_tensor(labels, dtype=torch.int64)
         bboxes = torch.as_tensor(bboxes)
 
         # output a dictionary with all the info
@@ -81,8 +76,7 @@ class OpenImagesDataset(data.Dataset):
         target["bboxes"] = bboxes
         target["labels"] = labels
         target["masks"] = mask_list
-        target["image_id"] = img_id
-        target["index"] = torch.tensor([idx])
+        target["index"] = torch.tensor([idx], dtype=torch.int64)
 
         if self.transforms is not None:
             img, target = self.transforms(img, target)

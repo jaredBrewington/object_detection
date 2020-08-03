@@ -2,14 +2,19 @@ from dataset import Open_Images_Instance_Seg
 from visualize import add_bboxes
 import matplotlib.pyplot as plt
 
+import torch.utils.data as data
+import utils
+
+# load dataset
 train_data = Open_Images_Instance_Seg("./train/")
 
-img, target = train_data.__get_item__(0)
+# make data loader
+data_loader = data.DataLoader(
+    train_data,
+    batch_size=20,
+    shuffle=True,
+    num_workers=0,
+    collate_fn=utils.collate_fn,
+)
 
-print(target["bboxes"][0])
-
-# plt.imshow(img)
-
-img_w_boxes = add_bboxes(img, target, labels_df=train_data.classes)
-plt.imshow(img_w_boxes)
-plt.show()
+# train model
