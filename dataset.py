@@ -8,31 +8,43 @@ from PIL import Image
 
 class OpenImagesDataset(data.Dataset):
     def __init__(self, root_dir, transforms=None):
+        """
+        Args:
+            root_dir (str): Directory containing training data
+            transforms (optional): Augmentation performed on the data. Defaults to None.
+        """
 
         self.root_dir = os.path.abspath(root_dir)
         self.transforms = transforms
 
-        self.imgs = sorted(os.listdir(os.path.join(self.root_dir, "images")))
+        self.imgs = sorted(
+            os.listdir(os.path.join(self.root_dir, "train_00_part"))
+        )
         self.img_ids = [img.split(".")[0] for img in self.imgs]
 
         self.masks = [
             [
                 mask
-                for mask in os.listdir(os.path.join(self.root_dir, "masks"))
+                for mask in os.listdir(
+                    os.path.join(self.root_dir, "train-masks-f")
+                )
                 if img_id in mask
             ]
             for img_id in self.img_ids
         ]
 
-        self.classes = pd.read_csv(
-            os.path.join(self.root_dir, "class-descriptions-boxable.csv"),
-            names=["id", "name"],
-        )
+        id_to_name_path = "../input/preprocessed-excerpt-from-open-images-2020/class_id_to_names.json"
+        with open(id_to_name_path) as f:
+            id_to_name = json.load(f)
+        self.class_id_to_name = {int(k): v for k, v in id_to_name.items()}
 
-        bbox_path = os.path.join(
-            self.root_dir, "oidv6-train-annotations-bbox.csv"
-        )
-        bbox_df = pd.read_csv(os.path.join(self.root_dir, bbox_path))
+        name_to_id_path = "../input/preprocessed-excerpt-from-open-images-2020/class_name_to_id.json"
+        with open(name_to_id_path) as f:
+            name_to_id = json.load(f)
+        self.class_name_to_id = {k: int(v) for k, v in name_to_id.items()}
+
+        bbox_path = "../input/preprocessed-excerpt-from-open-images-2020/processed_train_anno_bbox.csv"
+        bbox_df = pd.read_csv(bbox_path, index_col="ImageID")
         self.bbox_df = bbox_df
 
     def __getitem__(self, idx):
@@ -51,18 +63,13 @@ class OpenImagesDataset(data.Dataset):
             np.array(Image.open(mask_path)) for mask_path in mask_path_list
         ]
 
-        # get bounding boxes and class labels for the image
-        bboxes_df = self.bbox_df[self.bbox_df["ImageID"] == img_id]
+        # get bounding boxes and class labels with metadata for the image
+        bboxes_series = self.bbox_df.loc[img_id]
 
         # get the label index id
-        labels = bboxes_df["LabelName"].to_numpy()
-        labels = np.array(
-            [
-                self.classes.index[self.classes["id"] == label]
-                for label in labels
-            ]
-        ).flatten()
-        bboxes = bboxes_df[["XMin", "YMin", "XMax", "YMax"]].to_numpy()
+        labels = bboxes_series["class_id"].to_numpy()
+        # bboxes should be list of [Xmin, Ymin, Xmax, Ymax] for each bbox
+        bboxes = bboxes_series["bbox"].to_numpy()
 
         # make everything torch tensors
         img = torch.as_tensor(img)
