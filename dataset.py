@@ -1,20 +1,25 @@
 import os
+import json
+import ast
+
 import torch
 import torch.utils.data as data
+
 import numpy as np
 import pandas as pd
 from PIL import Image
 
 
 class OpenImagesDataset(data.Dataset):
-    def __init__(self, root_dir, transforms=None):
+    def __init__(self, root_dir, transforms=None, preprocessed_dir=None):
         """
         Args:
             root_dir (str): Directory containing training data
             transforms (optional): Augmentation performed on the data. Defaults to None.
+            preprocessed_dir (str): Secondary directory which contains bounding box and class info
         """
 
-        self.root_dir = os.path.abspath(root_dir)
+        self.root_dir = root_dir
         self.transforms = transforms
 
         self.imgs = sorted(
@@ -33,27 +38,32 @@ class OpenImagesDataset(data.Dataset):
             for img_id in self.img_ids
         ]
 
-        id_to_name_path = "../input/preprocessed-excerpt-from-open-images-2020/class_id_to_names.json"
+        self.pre_dir = (
+            preprocessed_dir if preprocessed_dir is not None else self.root_dir
+        )
+        id_to_name_path = os.path.join(self.pre_dir, "class_id_to_names.json")
         with open(id_to_name_path) as f:
             id_to_name = json.load(f)
         self.class_id_to_name = {int(k): v for k, v in id_to_name.items()}
 
-        name_to_id_path = "../input/preprocessed-excerpt-from-open-images-2020/class_name_to_id.json"
+        name_to_id_path = os.path.join(self.pre_dir, "class_name_to_id.json")
         with open(name_to_id_path) as f:
             name_to_id = json.load(f)
         self.class_name_to_id = {k: int(v) for k, v in name_to_id.items()}
 
-        bbox_path = "../input/preprocessed-excerpt-from-open-images-2020/processed_train_anno_bbox.csv"
+        bbox_path = os.path.join(self.pre_dir, "processed_train_anno_bbox.csv")
         bbox_df = pd.read_csv(bbox_path, index_col="ImageID")
+        for key in bbox_df.columns:
+            bbox_df[key] = bbox_df[key].apply(ast.literal_eval)
         self.bbox_df = bbox_df
 
     def __getitem__(self, idx):
 
         # load image and associated masks
-        img_path = os.path.join(self.root_dir, "images", self.imgs[idx])
+        img_path = os.path.join(self.root_dir, "train_00_part", self.imgs[idx])
         img_id = self.img_ids[idx]
         mask_path_list = [
-            os.path.join(self.root_dir, "masks", mask)
+            os.path.join(self.root_dir, "train-masks-f", mask)
             for mask in self.masks[idx]
         ]
 
@@ -67,9 +77,9 @@ class OpenImagesDataset(data.Dataset):
         bboxes_series = self.bbox_df.loc[img_id]
 
         # get the label index id
-        labels = bboxes_series["class_id"].to_numpy()
+        labels = np.array(bboxes_series["class_id"])
         # bboxes should be list of [Xmin, Ymin, Xmax, Ymax] for each bbox
-        bboxes = bboxes_series["bbox"].to_numpy()
+        bboxes = np.array(bboxes_series["bbox"])
 
         # make everything torch tensors
         img = torch.as_tensor(img)
@@ -80,7 +90,7 @@ class OpenImagesDataset(data.Dataset):
         # output a dictionary with all the info
         target = {}
 
-        target["bboxes"] = bboxes
+        target["boxes"] = bboxes
         target["labels"] = labels
         target["masks"] = mask_list
         target["index"] = torch.tensor([idx], dtype=torch.int64)
@@ -92,3 +102,4 @@ class OpenImagesDataset(data.Dataset):
 
     def __len__(self):
         return len(self.imgs)
+
