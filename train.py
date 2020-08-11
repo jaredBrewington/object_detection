@@ -71,10 +71,14 @@ def train(num_epochs=1, batch_size=16):
 
     # get training dataset
     dataset = OpenImagesDataset(
-        "./train/", transforms=None, preprocessed_dir="/Users/jared/Downloads",
+        "../input/open-images-instance-segmentation-rvc-2020",
+        transforms=None,
+        preprocessed_dir="../input/preprocessed-excerpt-from-open-images-2020",
     )
     dataset_valid = OpenImagesDataset(
-        "./train/", transforms=None, preprocessed_dir="/Users/jared/Downloads"
+        "../input/open-images-instance-segmentation-rvc-2020",
+        transforms=None,
+        preprocessed_dir="../input/preprocessed-excerpt-from-open-images-2020",
     )
 
     # split the dataset in train and validation set
