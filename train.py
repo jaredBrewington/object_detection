@@ -71,12 +71,12 @@ def train(num_epochs=1, batch_size=16):
 
     # get training dataset
     dataset = OpenImagesDataset(
-        "../input/open-images-instance-segmentation-rvc-2020",
+        "../input/excerpt-from-openimages-2020-train",
         transforms=None,
         preprocessed_dir="../input/preprocessed-excerpt-from-open-images-2020",
     )
     dataset_valid = OpenImagesDataset(
-        "../input/open-images-instance-segmentation-rvc-2020",
+        "../input/excerpt-from-openimages-2020-train",
         transforms=None,
         preprocessed_dir="../input/preprocessed-excerpt-from-open-images-2020",
     )
