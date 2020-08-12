@@ -44,11 +44,11 @@ def get_model(model_name):
     return model
 
 
-def train(num_epochs=1, batch_size=16):
+def train(num_epochs=1, batch_size=4):
     """
     Args:
         num_epochs (int, optional): Defaults to 1.
-        batch_size (int, optional): Batch size of data loader. Defaults to 16.
+        batch_size (int, optional): Batch size of data loader. Defaults to 4.
     """
     print("initiating training...")
 
